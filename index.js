@@ -19,62 +19,6 @@ let userId;
 
 let EquippedBadges = [];
 
-const BadgeTier = {
-    1: "https://cdn.discordapp.com/badge-icons/51040c70d4f20a921ad6674ff86fc95c.png", // Tier 1 (1 month)
-    2: "https://cdn.discordapp.com/badge-icons/0e4080d1d333bc7ad29ef6528b6f2fb7.png", // Tier 2 (2 months)
-    3: "https://cdn.discordapp.com/badge-icons/72bed924410c304dbe3d00a6e593ff59.png", // Tier 3 (3 months)
-    4: "https://cdn.discordapp.com/badge-icons/df199d2050d3ed4ebf84d64ae83989f8.png", // Tier 4 (6 months)
-    5: "https://cdn.discordapp.com/badge-icons/996b3e870e8a22ce519b3a50e6bdd52f.png", // Tier 5 (9 months)
-    6: "https://cdn.discordapp.com/badge-icons/991c9f39ee33d7537d9f408c3e53141e.png", // Tier 6 (12 months)
-    7: "https://cdn.discordapp.com/badge-icons/cb3ae83c15e970e8f3d410bc62cb8b99.png", // Tier 7 (15 months)
-    8: "https://cdn.discordapp.com/badge-icons/7142225d31238f6387d9f09efaa02759.png", // Tier 8 (18 months)
-    9: "https://cdn.discordapp.com/badge-icons/ec92202290b48d0879b7413d2dde3bab.png", // Tier 9 (24 months)
-};
-
-const badgeData = {
-    "Discord Staff": {
-        image: "https://cdn.discordapp.com/badge-icons/5e74e9b61934fc1f67c65515d1f7e60d.png",
-    },
-    "Active Developer": {
-        image: "https://cdn.discordapp.com/badge-icons/6bdc42827a38498929a4920da12695d9.png",
-    },
-    "HypeSquad Events": {
-        image: "https://cdn.discordapp.com/badge-icons/bf01d1073931f921909045f3a39fd264.png",
-    },
-    "Moderator Programmes Alumni": {
-        image: "https://cdn.discordapp.com/badge-icons/fee1624003e2fee35cb398e125dc479b.png",
-    },
-    "Partnered Server Owner": {
-        image: "https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de41e.png",
-    },
-    "Early Supporter": {
-        image: "https://cdn.discordapp.com/badge-icons/7060786766c9c840eb3019e725d2b358.png",
-    },
-    "Early Verified Bot Developer": {
-        image: "https://cdn.discordapp.com/badge-icons/6df5892e0f35b051f8b61eace34f4967.png",
-    },
-    "Discord Bug Hunter Gold": {
-        image: "https://cdn.discordapp.com/badge-icons/848f79194d4be5ff5f81505cbd0ce1e6.png",
-    },
-    "Discord Bug Hunter Green": {
-        image: "https://cdn.discordapp.com/badge-icons/2717692c7dca7289b35297368a940dd0.png",
-    },
-    "Nitro Member": {
-        image: "https://cdn.discordapp.com/badge-icons/2ba85e8026a8614b640c2837bcdfe21b.png",
-    },
-    "Server Booster": {},
-};
-
-const badges = Object.entries(badgeData).reduce((acc, [description, data]) => {
-    acc[description] = {
-        description,
-        shouldShow: ({ user }) => user.id === userId,
-        position: BadgePosition.END,
-        ...data,
-    };
-    return acc;
-}, {});
-
 const badgeSettings = {
     discordStaffBadge: "Discord Staff",
     hypeSquadEventsBadge: "HypeSquad Events",
@@ -117,24 +61,7 @@ export default definePlugin({
 });
 
 const addEnabledBadges = () => {
-    Object.entries(badgeData).forEach(([badgeName, badgeInfo]) => {
-        const sanitizedBadgeName = badgeName.replace(/\s+/g, "");
-        const settingName = `${sanitizedBadgeName.charAt(0).toLowerCase()}${sanitizedBadgeName.slice(1)}Badge`;
-        const isEnabled = settings.store[settingName] === true;
-
-        if (isEnabled) {
-            const badge = {
-                description: badgeName,
-                image: badgeData[badgeName].image,
-                position: BadgePosition.END,
-                shouldShow: ({ user }) => user.id === getUserId(),
-            };
-
-            EquippedBadges.push(badge);
-            addBadge(badge);
-        }
-    });
-
+    assignBadges();
     updateBoostingBadge();
 };
 
@@ -161,8 +88,10 @@ const updateBoostingBadge = () => {
         value = 0;
     }
 
-    const boostingBadge = badges["Server Booster"];
-    const existingBoostingBadge = EquippedBadges.find(b => b.description === "Server Booster");
+    let userProfile = chunk.find((m) => m?.exports?.default?.getUserProfile).exports.default;
+    let profile = userProfile.getUserProfile(userId);
+    const boostingBadge = profile.badges.find(b => b.id.startsWith("guild_booster_lvl"));
+    const existingBoostingBadge = EquippedBadges.find(b => b.description === boostingBadge.description);
 
     if (value !== 0) {
         const date = new Date();
@@ -175,7 +104,7 @@ const updateBoostingBadge = () => {
         const year = date.getFullYear();
 
         boostingBadge.description = `Server Boosting since ${day} ${month} ${year}`;
-        boostingBadge.image = BadgeTier[value];
+        boostingBadge.icon = BadgeTier[value];
         if (existingBoostingBadge) {
             EquippedBadges = EquippedBadges.filter(b => b !== existingBoostingBadge);
             removeBadge(existingBoostingBadge);
@@ -187,3 +116,142 @@ const updateBoostingBadge = () => {
         removeBadge(existingBoostingBadge);
     }
 };
+
+function assignBadges() {
+    let userProfile = chunk.find((m) => m?.exports?.default?.getUserProfile).exports.default;
+    let profile = userProfile.getUserProfile(userId);
+
+    profile.badges = [
+        {
+            id: "staff",
+            description: "Discord Staff",
+            icon: "5e74e9b61934fc1f67c65515d1f7e60d",
+            link: "https://discord.com/company",
+        },
+        {
+            id: "partner",
+            description: "Partnered Server Owner",
+            icon: "3f9748e53446a137a052f3454e2de41e",
+            link: "https://discord.com/partners",
+        },
+        {
+            id: "certified_moderator",
+            description: "Moderator Programs Alumni",
+            icon: "fee1624003e2fee35cb398e125dc479b",
+            link: "https://discord.com/safety",
+        },
+        {
+            id: "hypesquad",
+            description: "HypeSquad Events",
+            icon: "bf01d1073931f921909045f3a39fd264",
+            link: "https://discord.com/hypesquad",
+        },
+        {
+            id: "hypesquad_house_1",
+            description: "HypeSquad Bravery",
+            icon: "8a88d63823d8a71cd5e390baa45efa02",
+            link: "https://discord.com/settings/hypesquad-online",
+        },
+        {
+            id: "hypesquad_house_2",
+            description: "HypeSquad Brilliance",
+            icon: "011940fd013da3f7fb926e4a1cd2e618",
+            link: "https://discord.com/settings/hypesquad-online",
+        },
+        {
+            id: "hypesquad_house_3",
+            description: "HypeSquad Balance",
+            icon: "3aa41de486fa12454c3761e8e223442e",
+            link: "https://discord.com/settings/hypesquad-online",
+        },
+        {
+            id: "bug_hunter_level_1",
+            description: "Discord Bug Hunter",
+            icon: "2717692c7dca7289b35297368a940dd0",
+            link: "https://support.discord.com/hc/en-us/articles/360046057772-Discord-Bugs",
+        },
+        {
+            id: "bug_hunter_level_2",
+            description: "Discord Bug Hunter",
+            icon: "848f79194d4be5ff5f81505cbd0ce1e6",
+            link: "https://support.discord.com/hc/en-us/articles/360046057772-Discord-Bugs",
+        },
+        {
+            id: "active_developer",
+            description: "Active Developer",
+            icon: "6bdc42827a38498929a4920da12695d9",
+            link: "https://support-dev.discord.com/hc/en-us/articles/10113997751447?ref=badge",
+        },
+        {
+            id: "verified_developer",
+            description: "Early Verified Bot Developer",
+            icon: "6df5892e0f35b051f8b61eace34f4967",
+        },
+        {
+            id: "early_supporter",
+            description: "Early Supporter",
+            icon: "7060786766c9c840eb3019e725d2b358",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "premium",
+            description: "Subscriber since Dec 22, 2016",
+            icon: "2ba85e8026a8614b640c2837bcdfe21b",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl1",
+            description: "Server boosting since May 4, 2023",
+            icon: "51040c70d4f20a921ad6674ff86fc95c",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl2",
+            description: "Server boosting since Mar 11, 2023",
+            icon: "0e4080d1d333bc7ad29ef6528b6f2fb7",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl3",
+            description: "Server boosting since Feb 23, 2023",
+            icon: "72bed924410c304dbe3d00a6e593ff59",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl4",
+            description: "Server boosting since Sep 17, 2022",
+            icon: "df199d2050d3ed4ebf84d64ae83989f8",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl5",
+            description: "Server boosting since Feb 21, 2022",
+            icon: "fc7b684a9d6192c42b753e7a02514207",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl6",
+            description: "Server boosting since Feb 21, 2022",
+            icon: "18419c84c0aeee1c61aada4569f61c8f",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl7",
+            description: "Server boosting since Feb 21, 2022",
+            icon: "d0750afaa496a5092063f2b7984c67bb",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl8",
+            description: "Server boosting since Feb 21, 2022",
+            icon: "7cc21de330415a45db500330974a5d35",
+            link: "https://discord.com/settings/premium",
+        },
+        {
+            id: "guild_booster_lvl9",
+            description: "Server boosting since Feb 21, 2022",
+            icon: "10b1898f7bdbb72639c9d674f89f7f58",
+            link: "https://discord.com/settings/premium",
+        }
+    ];
+}
