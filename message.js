@@ -32,7 +32,7 @@ const settings = definePluginSettings({
 });
 
 // Function to render the custom badge
-const HardzyBadgePlugin = () => {
+const BadgePlugin = () => {
     if (!settings.store.enabled) return null;
 
     return (
@@ -75,7 +75,7 @@ const PatchedMuteButton = (props) => (
 
 // Define the plugin
 export default definePlugin({
-    name: "HardzyBadgePlugin",
+    name: "BadgePlugin",
     description: "This plugin adds a custom badge to your Discord profile.",
     authors: ["YourName"],
 
@@ -95,7 +95,7 @@ export default definePlugin({
         {
             module: "UserProfileBadgeList",
             functionName: "render",
-            callback: HardzyBadgePlugin,
+            callback: BadgePlugin,
         }
     ]
 });
