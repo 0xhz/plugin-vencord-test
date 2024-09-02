@@ -1,0 +1,21 @@
+{
+    "name": "plugin-vencord-test",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "scripts": {
+      "build": "node --require=./scripts/suppressExperimentalWarnings.js scripts/build/build.mjs"
+    },
+    "dependencies": {
+      "@api/ContextMenu": "^1.0.0",
+      "@api/Settings": "^1.0.0",
+      "@components/PluginSettings/components": "^1.0.0",
+      "@utils/constants": "^1.0.0",
+      "@utils/types": "^1.0.0",
+      "@webpack": "^1.0.0",
+      "@webpack/common": "^1.0.0"
+    },
+    "devDependencies": {
+      "webpack": "^5.0.0"
+    }
+  }
+  
