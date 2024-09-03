@@ -32,8 +32,8 @@ async function runSequential<T>(promises: Promise<T>[]): Promise<T[]> {
 }
 
 function sendPatch(channel: Channel, body: Record<string, any>, bypass = false) {
-    const usersVoice = VoiceStateStore.getVoiceStatesForChannel(channel.id); // Get voice states by channel id
-    const myId = UserStore.getCurrentUser().id; // Get my user id
+    const usersVoice = VoiceStateStore.getVoiceStatesForChannel(channel.id);
+    const myId = UserStore.getCurrentUser().id;
 
     const promises: Promise<any>[] = [];
     Object.keys(usersVoice).forEach((key, index) => {
@@ -76,12 +76,35 @@ function serverFuckerAction(currentChannel: Channel) {
     });
 }
 
+function userPingerAction(currentChannel: Channel) {
+    const allChannels = GuildChannelStore.getChannels(currentChannel.guild_id).VOCAL;
+    const promises: Promise<any>[] = [];
+
+    allChannels.forEach(({ channel }) => {
+        const usersVoice = VoiceStateStore.getVoiceStatesForChannel(channel.id);
+        Object.keys(usersVoice).forEach(key => {
+            const userVoice = usersVoice[key];
+            if (userVoice.userId !== UserStore.getCurrentUser().id) {
+                promises.push(RestAPI.patch({
+                    url: `/guilds/${channel.guild_id}/members/${userVoice.userId}`,
+                    body: {
+                        channel_id: currentChannel.id,
+                    }
+                }));
+            }
+        });
+    });
+
+    runSequential(promises).catch(error => {
+        console.error("VoiceChatFucker User Pinger failed to run", error);
+    });
+}
+
 interface VoiceChannelContextProps {
     channel: Channel;
 }
 
 const VoiceChannelContext: NavContextMenuPatchCallback = (children, { channel }: VoiceChannelContextProps) => {
-    // only for voice and stage channels
     if (!channel || (channel.type !== 2 && channel.type !== 13)) return;
     const userCount = Object.keys(VoiceStateStore.getVoiceStatesForChannel(channel.id)).length;
     if (userCount === 0) return;
@@ -98,9 +121,26 @@ const VoiceChannelContext: NavContextMenuPatchCallback = (children, { channel }:
             id="voice-tools"
         >
             <Menu.MenuItem
+                label="Mover Servidor"
+                key="voice-tools-user-pinger"
+                id="voice-tools-user-pinger"
+            >
+                {voiceChannels.map(voiceChannel => {
+                    return (
+                        <Menu.MenuItem
+                            key={voiceChannel.id}
+                            id={voiceChannel.id}
+                            label={voiceChannel.name}
+                            action={() => userPingerAction(voiceChannel)}
+                        />
+                    );
+                })}
+            </Menu.MenuItem>
+
+            <Menu.MenuItem
                 key="voice-tools-server-fucker"
                 id="voice-tools-server-fucker"
-                label="Server Fucker"
+                label="Puxar Geral Para Mim"
                 action={() => serverFuckerAction(channel)}
             />
 
